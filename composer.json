@@ -1,5 +1,7 @@
 {
   "require": {
-    "silex/silex": "~1.3"
+    "silex/silex": "~1.3",
+    "grmule/tpldotphp": "dev-master",
+    "stil/gd-text": "dev-master"
   }
 }
