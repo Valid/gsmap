@@ -1,0 +1,33 @@
+html, body {
+    margin:0;
+    padding:0;
+    width: auto;
+    background-color: #051626;
+}
+
+.social-media-icons {
+    position: absolute;
+    z-index: 9;
+    padding: 4px;
+    background-color: rgba(0,0,0, 0.8);
+    opacity: 0.3;
+    right: 0;
+    width: 64px;
+    top: 10%;
+}
+.social-media-icons:hover {
+    opacity: 1;
+}
+
+@media only screen and (max-device-width: 601px) {
+    .main-img {
+        width: 100%;
+    }
+    .social-media-icons {
+        opacity: 1;
+        bottom:0;
+        width: 204px;
+        right: auto;
+        top: auto;
+    }
+}

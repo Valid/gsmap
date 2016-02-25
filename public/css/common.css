@@ -1,0 +1,121 @@
+*, *:before, *:after {
+    -moz-box-sizing: border-box; -webkit-box-sizing: border-box; box-sizing: border-box;
+}
+html {
+    background-color: #0066ba;
+}
+html,body {
+    height: 100%;
+    font-family: 'Open Sans';
+}
+
+.leftColumn, .rightColumn, footer { padding: 1.25em; }
+.leftColumn { margin-bottom: .5em; }
+
+.columnsContainer {
+    background-color: white;
+    max-width: 80%;
+    margin: 2% auto 0 auto;
+}
+
+footer {
+    background-color: #091c26;
+    color: white;
+    padding: 6px;
+    text-align: center;
+    font-size: 0.7em;
+    max-width: 80%;
+    margin: 0 auto;
+}
+footer p,
+footer a,
+footer span,
+footer h1,
+footer h2,
+footer h3,
+footer h4,
+footer strong {
+    color: white;
+}
+@media (min-width: 850px) {
+    .columnsContainer {
+        display: -ms-flex;
+        display: -webkit-flex;
+        display: flex;
+    }
+    .leftColumn {
+        width: 60%;
+    }
+    .rightColumn {
+        width: 40%;
+    }
+    form {
+        width: 50%;
+    }
+}
+
+label{
+    display: block;
+}
+input {
+    margin-bottom: 8px;
+    padding: 6px;
+    width: 100%;
+}
+button, a.button {
+    background-color:  #20c361;
+    border: none;
+    padding: 6px 12px;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+    text-decoration: none;
+    margin-bottom: 12px;
+    transition: all 0.5s ease-in;
+    width: 100%;
+    text-align: center;
+    display: block;
+}
+button:hover,
+button:active,
+a.button:hover,
+a.button:hover{
+    background-color: #22df6b;
+}
+
+button.red, a.button.red {
+    background-color: #f55b5b
+}
+button.red:hover,
+button.red:active,
+a.button.red:hover,
+a.button.red:hover{
+    background-color: #ff5e5e
+}
+
+h3 {
+    color: #0066ba;
+    font-size: 1.5rem;
+    margin-bottom:4px;
+}
+p {
+    line-height: 1.1em;
+    margin: 6px 0;
+    padding: 6px 0px;
+}
+.panel {
+    padding: 12px;
+    background-color: #efefef;
+    margin: 6px 0;
+}
+.response-container {
+    font-size: 1.2rem;
+    margin-bottom: 60px;
+}
+.response-container.error {
+    padding: 8px;
+    background-color: #f55b5b;
+    color: white;
+    font-weight: bold;
+    font-size: 1.0rem;
+}

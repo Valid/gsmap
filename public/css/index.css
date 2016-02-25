@@ -1,0 +1,43 @@
+.accordion-toggle {cursor: pointer;}
+.accordion-content {display: none; margin: 6px 0;}
+.state-navigation {
+    display: block;
+    width: 100%;
+    margin: 0 auto;
+    list-style: none;
+    padding:0;
+}
+
+.state-navigation > li > a {
+    display: block;
+    padding: 16px 18px;
+    font-size: 1.3em;
+    font-weight: bold;
+    color: #d4d4d4;
+    text-decoration: none;
+    border-bottom: 1px solid #212121;
+    background-color: #343434;
+}
+.state-navigation > li > a:hover, .state-navigation > li > a.open {
+    color: #e9e9e9;
+    border-bottom-color: #384f76;
+    background-color: #0066ba;
+}
+.state-navigation .accordion-content strong {
+    font-size: 1.4rem;
+    color: #0066ba;
+    margin: 10px 0 12px;
+    display: block;
+}
+.district-list {
+    columns: 2;
+    -webkit-columns: 2;
+    -moz-columns: 2;
+}
+
+.district-list li {
+    padding: 12px;
+    -webkit-column-break-inside: avoid;
+    page-break-inside: avoid;
+    break-inside: avoid;
+}

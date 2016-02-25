@@ -1,2 +1,5 @@
 .idea
 vendor/
+env.php
+resources/data/*.csv
+resources/data/*.json

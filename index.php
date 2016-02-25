@@ -1,0 +1,3 @@
+<?
+    header('location:/gsmap/public/');
+?>
