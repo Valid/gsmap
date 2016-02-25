@@ -41,3 +41,14 @@
     page-break-inside: avoid;
     break-inside: avoid;
 }
+
+.response-container {
+    font-size: 1.2rem;
+}
+.response-container.error {
+    padding: 8px;
+    background-color: #f55b5b;
+    color: white;
+    font-weight: bold;
+    font-size: 1.0rem;
+}

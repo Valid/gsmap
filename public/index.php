@@ -17,7 +17,6 @@ $candidates = GSMap\DataFactory::db(DATA_PATH.'primaryCandidates.json', '\GSMap\
 $states = GSMap\DataFactory::db(DATA_PATH.'states.json', '\GSMap\State');
 $districts = GSMap\DataFactory::db(DATA_PATH.'districts.json', '\GSMap\District');
 
-
 $stateLister = function () use ($candidates, $states, $districts) {
     $statesOut = array();
     foreach ($candidates as $candidate) {
@@ -178,6 +177,13 @@ $lookupAddress = function($address) use ($templateEngine, $stateLister, $states)
     )));
 
 };
+$makeMenuPage = function () use ($templateEngine, $stateLister) {
+    $html = $templateEngine->template('index', array(
+        'states'=>$stateLister(),
+        'baseUrl'=>BASE_URL
+    ));
+    return $html;
+};
 $makeViewerPage = function ($level, $election, $seat, $stateId, $districtId) use ($templateEngine) {
     $html = $templateEngine->template('view', array(
         'level'=>$level,
@@ -280,19 +286,9 @@ $app['debug'] = true;
 
 $app->get('/addressLookup/{address}', $lookupAddress);
 $app->get('/view/{level}/{seat}/{election}/{stateId}/{districtId}', $makeViewerPage);
-$app->get('/', function () use ($templateEngine, $stateLister) {
-    //print '<pre>';
-    //var_dump($stateLister());
-    $html = $templateEngine->template('index', array(
-        'states'=>$stateLister(),
-        'baseUrl'=>BASE_URL
-    ));
-    return $html;
-});
+$app->get('/', $makeMenuPage);
 $app->get('/federal/{seat}/primary/{stateId}/{districtId}.png', $makeImage);
 $app->get('/federal/{seat}/primary/{stateId}/{districtId}', $makeImage);
-
-
 $app->get('/import', $importData);
 
 // experiment

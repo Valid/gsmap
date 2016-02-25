@@ -4,19 +4,25 @@ html, body {
     width: auto;
     background-color: #051626;
 }
-
 .social-media-icons {
-    position: absolute;
+    position: fixed;
     z-index: 9;
     padding: 4px;
     background-color: rgba(0,0,0, 0.8);
     opacity: 0.3;
     right: 0;
-    width: 64px;
     top: 10%;
 }
 .social-media-icons:hover {
     opacity: 1;
+}
+.main-img {
+    margin: 0 auto 80px auto;
+    display: block;
+}
+.social-icon {
+    margin: 4px;
+    display: block;
 }
 
 @media only screen and (max-device-width: 601px) {
@@ -26,8 +32,17 @@ html, body {
     .social-media-icons {
         opacity: 1;
         bottom:0;
-        width: 204px;
+        width: auto;
         right: auto;
+        left: 0;
         top: auto;
+        position: fixed;
+    }
+    .social-icon {
+        display: inline-block;
+    }
+    .social-icon img {
+        height: 48px;
+        width: 48px;
     }
 }
