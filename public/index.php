@@ -17,6 +17,35 @@ $candidates = GSMap\DataFactory::db(DATA_PATH.'primaryCandidates.json', '\GSMap\
 $states = GSMap\DataFactory::db(DATA_PATH.'states.json', '\GSMap\State');
 $districts = GSMap\DataFactory::db(DATA_PATH.'districts.json', '\GSMap\District');
 
+
+$stateLister = function () use ($candidates, $states, $districts) {
+    $statesOut = array();
+    foreach ($candidates as $candidate) {
+        if (array_key_exists($candidate->state, $statesOut) === false) {
+            $state = $states->row($candidate->state);
+            $statesOut[$candidate->state] = array(
+                'state'=>$state->toArray(),
+                'districts'=>array(),
+                'hasHouse'=>false,
+                'hasSenate'=>false
+            );
+            ksort($statesOut);
+        }
+
+        if (array_key_exists($candidate->district, $statesOut[$candidate->state]['districts']) === false) {
+            $district = $districts->row($candidate->state.$candidate->district);
+            if ($candidate->seat == 'H') {
+                $statesOut[$candidate->state]['hasHouse'] = true;
+            } else {
+                $statesOut[$candidate->state]['hasSenate'] = true;
+            }
+            $statesOut[$candidate->state]['districts'][$candidate->district] = $district->toArray();
+            ksort($statesOut[$candidate->state]['districts']);
+        }
+    }
+    return $statesOut;
+};
+
 $importData = function () {
     $row = 1;
     $import = array();
@@ -121,8 +150,8 @@ $lookupAddress = function($address) use ($templateEngine, $stateLister, $states)
     $firstPollingLocationResult = array_shift($districtLocationData['results']);
 
     $theState = $states->row($firstPollingLocationResult['state']);
-
     $statesList = $stateLister();
+
     $thisStateData = false;
     $thisDistrictData = false;
     if (array_key_exists($firstPollingLocationResult['state'], $statesList) === true) {
@@ -131,7 +160,6 @@ $lookupAddress = function($address) use ($templateEngine, $stateLister, $states)
             $thisDistrictData = $thisStateData['districts'][$firstPollingLocationResult['district']];
         }
     }
-
 
     die(json_encode(array(
         'status'=>'OK',
@@ -244,33 +272,6 @@ $makeImage = function (Silex\Application $app, $seat, $stateId, $districtId) use
     header('Content-type: image/png');
     imagepng($mainCanvas->getCanvas());
     return '';
-};
-$stateLister = function () use ($candidates, $states, $districts) {
-    $statesOut = array();
-    foreach ($candidates as $candidate) {
-        if (array_key_exists($candidate->state, $statesOut) === false) {
-            $state = $states->row($candidate->state);
-            $statesOut[$candidate->state] = array(
-                'state'=>$state->toArray(),
-                'districts'=>array(),
-                'hasHouse'=>false,
-                'hasSenate'=>false
-            );
-            ksort($statesOut);
-        }
-
-        if (array_key_exists($candidate->district, $statesOut[$candidate->state]['districts']) === false) {
-            $district = $districts->row($candidate->state.$candidate->district);
-            if ($candidate->seat == 'H') {
-                $statesOut[$candidate->state]['hasHouse'] = true;
-            } else {
-                $statesOut[$candidate->state]['hasSenate'] = true;
-            }
-            $statesOut[$candidate->state]['districts'][$candidate->district] = $district->toArray();
-            ksort($statesOut[$candidate->state]['districts']);
-        }
-    }
-    return $statesOut;
 };
 
 
