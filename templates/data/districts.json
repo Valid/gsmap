@@ -1,0 +1,22 @@
+{
+  "AL12":{
+    "id":"AL12",
+    "district":"12",
+    "state":"AL"
+  },
+  "AL13":{
+    "id":"AL13",
+    "district":"13",
+    "state":"AL"
+  },
+  "TX12":{
+    "id":"TX12",
+    "district":"12",
+    "state":"TX"
+  },
+  "TX13":{
+    "id":"TX13",
+    "district":"13",
+    "state":"TX"
+  }
+}
