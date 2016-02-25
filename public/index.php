@@ -278,14 +278,6 @@ $app = new Silex\Application();
 $app['debug'] = true;
 
 $app->get('/addressLookup/{address}', $lookupAddress);
-
-$app->get('/import', $importData);
-$app->get('/map', function () use ($templateEngine) {
-    $html = $templateEngine->template('map', array(
-
-    ));
-    return $html;
-});
 $app->get('/view/{level}/{seat}/{election}/{stateId}/{districtId}', $makeViewerPage);
 $app->get('/', function () use ($templateEngine, $stateLister) {
     //print '<pre>';
@@ -298,6 +290,18 @@ $app->get('/', function () use ($templateEngine, $stateLister) {
 });
 $app->get('/federal/{seat}/primary/{stateId}/{districtId}.png', $makeImage);
 $app->get('/federal/{seat}/primary/{stateId}/{districtId}', $makeImage);
+
+
+$app->get('/import', $importData);
+
+// experiment
+$app->get('/map', function () use ($templateEngine) {
+    $html = $templateEngine->template('map', array(
+
+    ));
+    return $html;
+});
+
 $app->run();
 
 ?>
