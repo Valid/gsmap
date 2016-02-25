@@ -5,59 +5,92 @@
 require_once('../env.php');
 require_once('../bootstrap.php');
 
-define('BASE_URL', 'http://chrismbaker.com/gsmap/public/');
-define('CANDIDATE_CARD_WIDTH', 250);
-define('CANDIDATE_CARD_HEIGHT', 500);
-
 $templateEngine = new \grmule\tpldotphp\PhpEngine(
     [
         TEMPLATE_PATH
     ],
-    new \grmule\tpldotphp\TemplateUtilities(),
+    null,
     true
 );
 
-$app = new Silex\Application();
-$app['debug'] = true;
+$candidates = GSMap\DataFactory::db(DATA_PATH.'primaryCandidates.json', '\GSMap\Candidate');
+$states = GSMap\DataFactory::db(DATA_PATH.'states.json', '\GSMap\State');
+$districts = GSMap\DataFactory::db(DATA_PATH.'districts.json', '\GSMap\District');
 
-$stateLister = function () {
-    $candidates = GSMap\DataFactory::db(DATA_PATH.'primaryCandidates.json', '\GSMap\Candidate');
-    $states = GSMap\DataFactory::db(DATA_PATH.'states.json', '\GSMap\State');
-    $districts = GSMap\DataFactory::db(DATA_PATH.'districts.json', '\GSMap\District');
+$importData = function () {
+    $row = 1;
+    $import = array();
+    if (($handle = fopen(DATA_PATH.'import.csv', "r")) !== FALSE) {
+        while (($data = fgetcsv($handle, 1000, ",")) !== FALSE) {
+            $import[$row] = array();
+            $num = count($data);
+            for ($c=0; $c < $num; $c++) {
+                $import[$row][$c] = $data[$c];
+            }
+            $row++;
+        }
+        fclose($handle);
+    }
 
-    $statesOut = array();
-    foreach ($candidates as $candidate) {
-        if (array_key_exists($candidate->state, $statesOut) === false) {
-            $state = $states->row($candidate->state);
-            $statesOut[$candidate->state] = array(
-                'state'=>$state->toArray(),
-                'districts'=>array(),
-                'hasHouse'=>false,
-                'hasSenate'=>false
-            );
-            ksort($statesOut);
+    // get rid of the two headings
+    array_shift($import);
+    array_shift($import);
+
+    $template =  array(
+        "id"=>"",
+        "name"=>"",
+        "image"=>"",
+        "state"=>"",
+        "district"=>"00",
+        "seat"=>"",
+        "points"=>array(),
+        "issues"=>array()
+    );
+
+    $candidateCounter = 1;
+    $candidatesOut = array();
+    $districtsOut = array();
+    foreach ($import as $candidateImport) {
+        if ($candidateImport[0] == '.0.') {
+            break;
         }
 
-        if (array_key_exists($candidate->district, $statesOut[$candidate->state]['districts']) === false) {
-            $district = $districts->row($candidate->state.$candidate->district);
-            if ($candidate->seat == 'H') {
-                $statesOut[$candidate->state]['hasHouse'] = true;
-            } else {
-                $statesOut[$candidate->state]['hasSenate'] = true;
-            }
-            $statesOut[$candidate->state]['districts'][$candidate->district] = $district->toArray();
-            ksort($statesOut[$candidate->state]['districts']);
+        $thisCandidate = $template;
+        $thisCandidate['id'] = trim($candidateImport[0]).$candidateCounter;
+        $thisCandidate['name'] = trim($candidateImport[4]);
+        $thisCandidate['image'] = trim($candidateImport[5]);
+        $thisCandidate['state'] = trim($candidateImport[1]);
+        $thisCandidate['district'] = trim($candidateImport[2]);
+        $thisCandidate['seat'] = trim($candidateImport[3]);
+        $thisCandidate['points'] = array(
+            trim($candidateImport[6]),
+            trim($candidateImport[7]),
+            trim($candidateImport[8]),
+        );
+
+        $candidateCounter++;
+        $candidatesOut[$thisCandidate['id']] = $thisCandidate;
+
+        $districtId = $thisCandidate['state'].$thisCandidate['district'];
+        if (array_key_exists($districtId, $districtsOut) === false) {
+            $districtsOut[$districtId] = array(
+                'id'=>$districtId,
+                'district'=>$thisCandidate['district'],
+                'state'=>$thisCandidate['state']
+            );
         }
     }
-    return $statesOut;
-};
 
-$app->get('/addressLookup/{address}', function($address) use ($templateEngine,$stateLister) {
-   $address = urldecode($address);
-   $data = file_get_contents('https://maps.googleapis.com/maps/api/geocode/json?address='.urlencode($address).'&key='.GOOGLE_MAPS_API_KEY);
-   $geodata = @json_decode(
-       $data, true
-   );
+    file_put_contents(DATA_PATH.'primaryCandidates.json', json_encode($candidatesOut, JSON_PRETTY_PRINT));
+    file_put_contents(DATA_PATH.'districts.json', json_encode($districtsOut, JSON_PRETTY_PRINT));
+    return 'done';
+};
+$lookupAddress = function($address) use ($templateEngine, $stateLister, $states) {
+    $address = urldecode($address);
+    $data = file_get_contents('https://maps.googleapis.com/maps/api/geocode/json?address='.urlencode($address).'&key='.GOOGLE_MAPS_API_KEY);
+    $geodata = @json_decode(
+        $data, true
+    );
 
     if (is_array($geodata) === false || $geodata['status'] != 'OK') {
         //var_dump($data);
@@ -87,7 +120,6 @@ $app->get('/addressLookup/{address}', function($address) use ($templateEngine,$s
 
     $firstPollingLocationResult = array_shift($districtLocationData['results']);
 
-    $states = GSMap\DataFactory::db(DATA_PATH.'states.json', '\GSMap\State');
     $theState = $states->row($firstPollingLocationResult['state']);
 
     $statesList = $stateLister();
@@ -99,8 +131,8 @@ $app->get('/addressLookup/{address}', function($address) use ($templateEngine,$s
             $thisDistrictData = $thisStateData['districts'][$firstPollingLocationResult['district']];
         }
     }
-    //print '<pre>';
-//var_dump($thisStateData);
+
+
     die(json_encode(array(
         'status'=>'OK',
         'message'=>$templateEngine->template(
@@ -117,86 +149,7 @@ $app->get('/addressLookup/{address}', function($address) use ($templateEngine,$s
         ),
     )));
 
-});
-
-
-$app->get('/import', function () {
-    $row = 1;
-    $import = array();
-    if (($handle = fopen(DATA_PATH.'import.csv', "r")) !== FALSE) {
-        while (($data = fgetcsv($handle, 1000, ",")) !== FALSE) {
-            $import[$row] = array();
-            $num = count($data);
-            for ($c=0; $c < $num; $c++) {
-                $import[$row][$c] = $data[$c];
-            }
-            $row++;
-        }
-        fclose($handle);
-    }
-
-    array_shift($import);
-    array_shift($import);
-    //print '<pre>';
-    //var_dump($import);
-    $template =  array(
-        "id"=>"",
-        "name"=>"",
-        "image"=>"",
-        "state"=>"",
-        "district"=>"00",
-        "seat"=>"",
-        "points"=>array(),
-        "issues"=>array()
-    );
-
-    $candidateCounter = 1;
-    $candidatesOut = array();
-    $districtsOut = array();
-    foreach ($import as $candidateImport) {
-        //$maxCols = count($candidateImport);
-        if ($candidateImport[0] == '.0.') {
-            break;
-        }
-
-        $thisCandidate = $template;
-        $thisCandidate['id'] = trim($candidateImport[0]).$candidateCounter;
-        $thisCandidate['name'] = trim($candidateImport[4]);
-        $thisCandidate['image'] = trim($candidateImport[5]);
-        $thisCandidate['state'] = trim($candidateImport[1]);
-        $thisCandidate['district'] = trim($candidateImport[2]);
-        $thisCandidate['seat'] = trim($candidateImport[3]);
-        $thisCandidate['points'] = array(
-            trim($candidateImport[6]),
-            trim($candidateImport[7]),
-            trim($candidateImport[8]),
-        );
-
-        $candidateCounter++;
-        $candidatesOut[$thisCandidate['id']] = $thisCandidate;
-
-        $districtId = $thisCandidate['state'].$thisCandidate['district'];
-        if (array_key_exists($districtId, $districtsOut) === false) {
-            $districtsOut[$districtId] = array(
-                'id'=>$districtId,
-                'district'=>$thisCandidate['district'],
-                'state'=>$thisCandidate['state']
-            );
-        }
-
-    }
-
-    file_put_contents(DATA_PATH.'primaryCandidates.json', json_encode($candidatesOut, JSON_PRETTY_PRINT));
-    file_put_contents(DATA_PATH.'districts.json', json_encode($districtsOut, JSON_PRETTY_PRINT));
-    return 'done';
-});
-$app->get('/map', function () use ($templateEngine) {
-    $html = $templateEngine->template('map', array(
-
-    ));
-    return $html;
-});
-
+};
 $makeViewerPage = function ($level, $election, $seat, $stateId, $districtId) use ($templateEngine) {
     $html = $templateEngine->template('view', array(
         'level'=>$level,
@@ -209,21 +162,7 @@ $makeViewerPage = function ($level, $election, $seat, $stateId, $districtId) use
     ));
     return $html;
 };
-$app->get('/view/{level}/{seat}/{election}/{stateId}/{districtId}', $makeViewerPage);
-
-$app->get('/', function () use ($templateEngine, $stateLister) {
-    //print '<pre>';
-    //var_dump($stateLister());
-    $html = $templateEngine->template('index', array(
-        'states'=>$stateLister(),
-        'baseUrl'=>BASE_URL
-    ));
-    return $html;
-});
-
-
-$makeImage = function (Silex\Application $app, $seat, $stateId, $districtId) use ($base) {
-    $candidates = GSMap\DataFactory::db(DATA_PATH.'primaryCandidates.json', '\GSMap\Candidate');
+$makeImage = function (Silex\Application $app, $seat, $stateId, $districtId) use ($candidates, $states) {
     $workWith = $candidates->where(array(
         array('state', $stateId),
         array('district', $districtId),
@@ -238,10 +177,7 @@ $makeImage = function (Silex\Application $app, $seat, $stateId, $districtId) use
         die('only one candidate image');
     }
 
-    $states = GSMap\DataFactory::db(DATA_PATH.'states.json', '\GSMap\State');
     $state = $states->row($stateId);
-
-
 
     $finalWidth = (count($workWith))*CANDIDATE_CARD_WIDTH;
 
@@ -309,84 +245,59 @@ $makeImage = function (Silex\Application $app, $seat, $stateId, $districtId) use
     imagepng($mainCanvas->getCanvas());
     return '';
 };
+$stateLister = function () use ($candidates, $states, $districts) {
+    $statesOut = array();
+    foreach ($candidates as $candidate) {
+        if (array_key_exists($candidate->state, $statesOut) === false) {
+            $state = $states->row($candidate->state);
+            $statesOut[$candidate->state] = array(
+                'state'=>$state->toArray(),
+                'districts'=>array(),
+                'hasHouse'=>false,
+                'hasSenate'=>false
+            );
+            ksort($statesOut);
+        }
+
+        if (array_key_exists($candidate->district, $statesOut[$candidate->state]['districts']) === false) {
+            $district = $districts->row($candidate->state.$candidate->district);
+            if ($candidate->seat == 'H') {
+                $statesOut[$candidate->state]['hasHouse'] = true;
+            } else {
+                $statesOut[$candidate->state]['hasSenate'] = true;
+            }
+            $statesOut[$candidate->state]['districts'][$candidate->district] = $district->toArray();
+            ksort($statesOut[$candidate->state]['districts']);
+        }
+    }
+    return $statesOut;
+};
+
+
+$app = new Silex\Application();
+$app['debug'] = true;
+
+$app->get('/addressLookup/{address}', $lookupAddress);
+
+$app->get('/import', $importData);
+$app->get('/map', function () use ($templateEngine) {
+    $html = $templateEngine->template('map', array(
+
+    ));
+    return $html;
+});
+$app->get('/view/{level}/{seat}/{election}/{stateId}/{districtId}', $makeViewerPage);
+$app->get('/', function () use ($templateEngine, $stateLister) {
+    //print '<pre>';
+    //var_dump($stateLister());
+    $html = $templateEngine->template('index', array(
+        'states'=>$stateLister(),
+        'baseUrl'=>BASE_URL
+    ));
+    return $html;
+});
 $app->get('/federal/{seat}/primary/{stateId}/{districtId}.png', $makeImage);
 $app->get('/federal/{seat}/primary/{stateId}/{districtId}', $makeImage);
-
-
-
 $app->run();
-
-
-$issues = array(
-    'medical'=>array(
-        'card'=>'medical.png',
-        'textColor'=>array(0,0,0),
-        'size'=>28,
-        'conflict'=>array(
-            array(
-                'x'=>128,
-                'y'=>90,
-                'text'=>'[left.name] [left.positions]'
-            ),
-            array(
-                'x'=>112,
-                'y'=>125,
-                'text'=>'healthcare for all'
-            ),
-            array(
-                'x'=>127,
-                'y'=>160,
-                'text'=>'[right.name] [right.positions] it'
-            ),
-        ),
-        'match'=>array(
-            array(
-                'x'=>125,
-                'y'=>50,
-                'text'=>'both candidates [left.position]'
-            ),
-            array(
-                'x'=>112,
-                'y'=>90,
-                'text'=>'healthcare for all'
-            )
-        )
-    ),
-    'education'=>array(
-        'card'=>'education.png',
-        'textColor'=>array(0,0,0),
-        'size'=>28,
-        'conflict'=>array(
-            array(
-                'x'=>5,
-                'y'=>80,
-                'text'=>'[left.name] [left.positions]'
-            ),
-            array(
-                'x'=>5,
-                'y'=>110,
-                'text'=>'healthcare for all'
-            ),
-            array(
-                'x'=>5,
-                'y'=>140,
-                'text'=>'[right.name] [right.positions] it'
-            ),
-        ),
-        'match'=>array(
-            array(
-                'x'=>0,
-                'y'=>0,
-                'text'=>'both candidates [left.position]'
-            ),
-            array(
-                'x'=>0,
-                'y'=>0,
-                'text'=>'healthcare for all'
-            )
-        )
-    )
-);
-
 
 ?>
